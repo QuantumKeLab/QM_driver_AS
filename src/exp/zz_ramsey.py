@@ -16,69 +16,87 @@ import xarray as xr
 import time
 import numpy as np
 
-def exp_zz_ramsey(time_max,time_resolution,ro_element,xy_element,con_xy_element,n_avg,config,qmm,virtual_detune=0,X=False,simulate:bool=False,initializer=None):
+def exp_zz_ramsey(time_max,time_resolution,flux_range,ro_element,xy_element,con_xy_element,coupler_element,n_avg,config,qmm,virtual_detune=0,simulate:bool=False,initializer=None):
     """
 
     virtual_detune unit in MHz.\n
     time_max unit in us.\n
     time_resolution unit in us.\n
     """
-    v_detune_qua = virtual_detune *u.MHz
-    print(virtual_detune)
-    cc_resolution = (time_resolution/4.) *u.us
-    cc_max_qua = (time_max/4.) *u.us
-    cc_qua = np.arange( 4, cc_max_qua, cc_resolution)
-    print(cc_qua)
+    # v_detune_qua = virtual_detune *u.MHz
+    # cc_resolution = (time_resolution/4.) *u.us
+    # cc_max_qua = (time_max/4.) *u.us
+    # cc_qua = np.arange( 4, cc_max_qua, cc_resolution)
 
-    evo_time = cc_qua*4
-    time_len = len(cc_qua)
+    # evo_time = cc_qua*4
+    # time_len = len(cc_qua)
+    point_per_period = 20
+    Ramsey_period = (1e3/virtual_detune)* u.ns
+    tick_resolution = (Ramsey_period//(4*point_per_period))
+    evo_time_tick_max = tick_resolution *point_per_period*6
+    print(f"time resolution {tick_resolution*4} ,max time {evo_time_tick_max*4}")
+    evo_time_tick = np.arange( 4, evo_time_tick_max, tick_resolution)
+    evo_time = evo_time_tick*4
+    time_len = len(evo_time)
+    da = flux_range/5
+    flux = np.arange(-flux_range, flux_range - da / 2, da)
+    flux_len = len(flux) 
     with program() as ramsey:
         iqdata_stream = multiRO_declare( ro_element )
         n = declare(int)
         n_st = declare_stream()
-        cc = declare(int)  # QUA variable for the idle time, unit in clock cycle
+        t = declare(int)  # QUA variable for the idle time, unit in clock cycle
         phi = declare(fixed)  # Phase to apply the virtual Z-rotation
+        phi_idx = declare(bool,)
+        X_idx = declare(bool,)
+        dc = declare(fixed) 
         with for_(n, 0, n < n_avg, n + 1):
-            with for_( *from_array(cc, cc_qua) ):
-                
-                    # Init
-                    if initializer is None:
-                        wait(100*u.us)
-                    else:
-                        try:
-                            initializer[0](*initializer[1])
-                        except:
-                            print("Initializer didn't work!")
-                            wait(100*u.us)
+            with for_each_( X_idx, [True, False]):
+                with for_each_( phi_idx, [True, False]):
+                    with for_(*from_array(dc, flux)):
+                        with for_( *from_array(t, evo_time_tick) ):
+                            # Init
+                            if initializer is None:
+                                wait(100*u.us)
+                            else:
+                                try:
+                                    initializer[0](*initializer[1])
+                                except:
+                                    print("Initializer didn't work!")
+                                    wait(100*u.us)
 
-                    # Operation
-                    phi = Cast.mul_fixed_by_int( virtual_detune/1e3, 4 *cc)
-                    # True_value =  v_detune_qua*4*cc
-                    # False_value = v_detune_qua*4*cc
+                            # Operation
+                            True_value = Cast.mul_fixed_by_int(virtual_detune * 1e-3, 4 * t)
+                            False_value = Cast.mul_fixed_by_int(-virtual_detune * 1e-3, 4 * t)
+                            assign(phi, Util.cond(phi_idx, True_value, False_value))
+                            # phi = Cast.mul_fixed_by_int( virtual_detune/1e3, 4 *cc)
+                            # True_value =  v_detune_qua*4*cc
+                            # False_value = v_detune_qua*4*cc
 
-                    if X:
-                        for con_xy in con_xy_element:
-                            play("x180", con_xy)   # conditional x180 gate
-                        align()
+                            with if_(X_idx):
+                                for con_xy in con_xy_element:
+                                    play("x180", con_xy)   # conditional x180 gate
+                                align()
 
-                    for xy in xy_element:
-                        play("x90", xy)  # 1st x90 gate
-                        wait(cc, xy)
-                        frame_rotation_2pi(phi, xy)  # Virtual Z-rotation
-                        play("x90", xy)  # 2st x90 gate
+                            for xy in xy_element:
+                                play("x90", xy)  # 1st x90 gate
+                                play("const"*amp(dc*10.), coupler_element, t)         #const 預設0.1
+                                wait(t, xy)
+                                frame_rotation_2pi(phi, xy)  # Virtual Z-rotation
+                                play("x90", xy)  # 2st x90 gate
 
-                    # Align after playing the qubit pulses.
-                    align()
-                    # Readout
-                    multiRO_measurement(iqdata_stream, ro_element, weights="rotated_")         
-                
+                            # Align after playing the qubit pulses.
+                            align()
+                            # Readout
+                            multiRO_measurement(iqdata_stream, ro_element, weights="rotated_")         
+                        
 
             # Save the averaging iteration to get the progress bar
             save(n, n_st)
 
         with stream_processing():
             n_st.save("iteration")
-            multiRO_pre_save(iqdata_stream, ro_element, (time_len,) )
+            multiRO_pre_save(iqdata_stream, ro_element, (2, 2, flux_len, time_len) )
 
     ###########################
     # Run or Simulate Program #
@@ -128,11 +146,11 @@ def exp_zz_ramsey(time_max,time_resolution,ro_element,xy_element,con_xy_element,
         output_data = {}
 
         for r_idx, r_name in enumerate(ro_element):
-            output_data[r_name] = ( ["mixer","time"],
+            output_data[r_name] = ( ["mixer","X","frequency","flux","time"],
                                 np.array([fetch_data[r_idx*2], fetch_data[r_idx*2+1]]) )
         dataset = xr.Dataset(
             output_data,
-            coords={ "mixer":np.array(["I","Q"]), "time": evo_time }
+            coords={ "mixer":np.array(["I","Q"]), "X": np.array([True, False]), "frequency": np.array([virtual_detune,-virtual_detune]), "flux":  flux, "time": evo_time}
         )
 
         return dataset
@@ -190,27 +208,107 @@ def plot_phase(x, dataset1, dataset2, ax=None):
         fig, ax = plt.subplots()
     try:
         fit = Fit()
-        decay_fit1 = fit.ramsey(4 * idle_times, idata1, plot=False)
+        decay_fit1 = fit.ramsey(4 * x, idata1, plot=False)
         freq1 = decay_fit1["f"][0]
+        print("w/o X freq:")
+        print(freq1)
     except:
         print("an error occured in data1")
         freq1 = 0
     try:
         fit = Fit()
-        decay_fit2 = fit.ramsey(4 * idle_times, idata2, plot=False)
+        decay_fit2 = fit.ramsey(4 * x, idata2, plot=False)
         freq2 = decay_fit2["f"][0]
+        print("w X freq:")
+        print(freq2)
     except:
         print("an error occured in data2")
         freq2 = 0
     phase1 = 2*np.pi*freq1*x
     phase2 = 2*np.pi*freq2*x
+    
+    # ax.plot(x,idata1,"-",color="b", label="w/ x180 gate")
+    # ax.plot(x,idata2,"--",color="r", label="w/o x180 gate")
     ax.plot(x,phase1,"-",color="b", label="w/o x180 gate")
     ax.plot(x,phase2,"--",color="r", label="w/ x180 gate")
     ax.set_xlabel("Free Evolution Times [ns]")
     if ax == None:
         return fig
 
-    
+def plot_difference(x, dataset1, dataset2, ax=None):
+    """
+    x in shape (N, )
+    dataset in shape (2,N)
+    dataset1 w/o conditional x180 gate
+    dataset2 w/ conditional x180 gate
+    2 is I and Q
+    N is evo_time_point
+    """
+    idata1 = choose_idata(dataset1)
+    idata2 = choose_idata(dataset2)
+    if ax == None:
+        fig, ax = plt.subplots()
+    # try:
+    #     fit = Fit()
+    #     decay_fit1 = fit.ramsey(4 * idle_times, idata1, plot=False)
+    #     freq1 = decay_fit1["f"][0]
+    # except:
+    #     print("an error occured in data1")
+    #     freq1 = 0
+    # try:
+    #     fit = Fit()
+    #     decay_fit2 = fit.ramsey(4 * idle_times, idata2, plot=False)
+    #     freq2 = decay_fit2["f"][0]
+    # except:
+    #     print("an error occured in data2")
+    #     freq2 = 0
+    # phase1 = 2*np.pi*freq1*x
+    # phase2 = 2*np.pi*freq2*x
+    ax.plot(x,idata1,"-",color="b", label="w/o x180 gate")
+    ax.plot(x,idata2,"--",color="r", label="w/ x180 gate")
+    # ax.plot(x,phase1,"-",color="b", label="w/o x180 gate")
+    # ax.plot(x,phase2,"--",color="r", label="w/ x180 gate")
+    ax.set_xlabel("Free Evolution Times [ns]")
+    if ax == None:
+        return fig
+
+
+
+def plot_ana_result( evo_time, flux, detuning, data, ax=None ):
+    """
+    data in shape (2,N)
+    2 is postive and negative
+    N is evo_time_point
+    """
+    if ax == None:
+        fig, ax = plt.subplots()
+    fit = Fit()
+    frequency_X=np.zeros(len(flux))
+    frequency_I=np.zeros(len(flux))
+    for i in range(len(flux)):
+        print(i)
+        ana_dict_pos = fit.ramsey(evo_time, data[1][0][i], plot=False)
+        ana_dict_neg = fit.ramsey(evo_time, data[1][1][i], plot=False)
+        freq_pos = ana_dict_pos['f'][0]*1e3
+        freq_neg = ana_dict_neg['f'][0]*1e3
+        frequency_I[i] = (freq_pos-freq_neg)/2
+        ana_dict_pos = fit.ramsey(evo_time, data[0][0][i], plot=False)
+        ana_dict_neg = fit.ramsey(evo_time, data[0][1][i], plot=False)
+        freq_pos = ana_dict_pos['f'][0]*1e3
+        freq_neg = ana_dict_neg['f'][0]*1e3
+        frequency_X[i] = (freq_pos-freq_neg)/2
+
+    ax.set_xlabel("flux [mV]")
+
+
+    ax.plot(flux, frequency_I, label=f"w/o X")#: {freq_pos:.3f} MHz")
+    ax.plot(flux, frequency_X, label=f"w/ X")#: {freq_neg:.3f} MHz")
+    ax.plot(flux, frequency_X-frequency_I, label=f"diff")
+    ax.text(0.07, 0.9, f"min diff at : {flux[np.argmin(frequency_X-frequency_I)]:.3f}", fontsize=10, transform=ax.transAxes)
+
+    ax.legend()
+    plt.tight_layout()
+
 # def T2_hist(data, T2_max, signal_name):
 #     try:
 #         new_data = [x / 1000 for x in data]  
