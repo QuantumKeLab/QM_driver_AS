@@ -43,15 +43,11 @@ class find_ZZfree( QMMeasurement ):
         self.flux_range = ( -0.1, 0.1 )
         self.resolution = 0.001
 
-        self.virtual_detune_qua = np.array([self.virtual_detune*u.MHz, -self.virtual_detune*u.MHz])
-        self.flux_qua = self._lin_flux_array( )
-        self.evo_time_qua = self._evo_time_array( )
-
     def _get_qua_program( self ):
         
         self.virtual_detune_qua = np.array([self.virtual_detune*u.MHz, -self.virtual_detune*u.MHz])
         self.flux_qua = self._lin_flux_array( )
-        self.evo_time_qua = self._evo_time_array( )
+        self.evo_time_tick_qua = self._evo_time_tick_array( )
         with program() as ZZfree:
             iqdata_stream = multiRO_declare( self.ro_elements[0] )
             n = declare(int)
@@ -67,7 +63,7 @@ class find_ZZfree( QMMeasurement ):
                 with for_each_( X_idx, [True, False]):
                     with for_each_( phi_idx, [True, False]):
                         with for_(*from_array(dc, self.flux_qua)):
-                            with for_( *from_array(t, self.evo_time_qua) ):
+                            with for_( *from_array(t, self.evo_time_tick_qua) ):
                                 # Initialization
                                 # Wait for the resonator to deplete
                                 if self.initializer is None:
@@ -89,7 +85,7 @@ class find_ZZfree( QMMeasurement ):
 
                                 play("x90", self.target_xy[0])  # 1st x90 gate
                                 align()
-                                play("const"*amp(dc*10.), self.coupler_z[0], t)    # const 預設0.1
+                                play("const"*amp(dc*2.), self.coupler_z[0], t)    # const 預設0.1
                                 wait(t, self.target_xy[0])
                                 align()
                                 frame_rotation_2pi(phi, self.target_xy[0])  # Virtual Z-rotation
@@ -102,7 +98,7 @@ class find_ZZfree( QMMeasurement ):
 
             with stream_processing():
                 # Cast the data into a 1D vector, average the 1D vectors together and store the results on the OPX processor
-                multiRO_pre_save( iqdata_stream, self.ro_elements[0], (2, 2, len(self.flux_qua), len(self.evo_time_qua)))
+                multiRO_pre_save( iqdata_stream, self.ro_elements[0], (2, 2, len(self.flux_qua), len(self.evo_time_tick_qua)))
                 n_st.save("iteration")
 
         return ZZfree
@@ -124,17 +120,17 @@ class find_ZZfree( QMMeasurement ):
                                 np.array([self.fetch_data[r_idx*2], self.fetch_data[r_idx*2+1]]) )
         dataset = xr.Dataset(
             output_data,
-            coords={"mixer":np.array(["I","Q"]), "X": np.array([True, False]), "virtual_detune": self.virtual_detune_qua, "flux": self.flux_qua, "time": self.evo_time_qua}
+            coords={"mixer":np.array(["I","Q"]), "X": np.array([True, False]), "virtual_detune": self.virtual_detune_qua, "flux": self.flux_qua, "time": 4*self.evo_time_tick_qua}
         )
         return dataset
      
     def _lin_flux_array( self ):
         return np.arange( self.flux_range[0], self.flux_range[1], self.resolution )
     
-    def _evo_time_array( self ):
+    def _evo_time_tick_array( self ):
         point_per_period = 20
         Ramsey_period = (1e3/self.virtual_detune)* u.ns
         tick_resolution = (Ramsey_period//(4*point_per_period))
         evo_time_tick_max = tick_resolution *point_per_period*6
         evo_time_tick = np.arange( 4, evo_time_tick_max, tick_resolution)
-        return evo_time_tick*4
+        return evo_time_tick

@@ -21,15 +21,16 @@ from visualization.find_ZZfree_plot import plot_ZZfree
 # Set parameters
 from exp.find_zzfree import find_ZZfree
 my_exp = find_ZZfree(config, qmm)
-my_exp.ro_elements = ["q3_ro"]
-my_exp.target_xy = ["q3_xy"]
-my_exp.crosstalk_xy = ["q2_xy"] # conditional x gate
+my_exp.ro_elements = ["q2_ro"]
+my_exp.target_xy = ["q2_xy"]
+my_exp.crosstalk_xy = ["q3_xy"] # conditional x gate
 my_exp.coupler_z = ["q7_z"]
 my_exp.virtual_detune = 5
-my_exp.flux_range = ( -0.075, 0.075 )
+my_exp.flux_range = ( -0.25, -0.05 )
 my_exp.resolution = 0.001
 
-my_exp.initializer = initializer(50000,mode='wait')
+
+my_exp.initializer = initializer(200000,mode='wait')
 dataset = my_exp.run( 1000 )
 
 save_data = True
@@ -39,9 +40,6 @@ save_dir = link_config["path"]["output_root"]
 if save_data: save_nc( save_dir, file_name, dataset)
 
 # Plot
-plot_ZZfree(dataset)
+plot_ZZfree(dataset) 
 if save_data: save_fig( save_dir, file_name)
 plt.show()    
- 
-
-    

@@ -24,7 +24,7 @@ def calculate_real_detune(data):
     """
     freq_pos = try_fit_ramsey(data[0])
     freq_neg = try_fit_ramsey(data[1])
-    real_detune = (freq_pos-freq_neg)/2
+    real_detune = (freq_pos-freq_neg)/2.
     return real_detune
 
 def real_detune_X_flux(data):
@@ -39,7 +39,6 @@ def real_detune_X_flux(data):
     q = list(data.data_vars.keys())[0]
     frequency_X=np.zeros(len(flux_range))
     frequency_I=np.zeros(len(flux_range))
-
     for flux_idx, flux in enumerate(flux_range):
         frequency_I[flux_idx] = calculate_real_detune(data[q][0, 1, :, flux_idx, :])
         frequency_X[flux_idx] = calculate_real_detune(data[q][0, 0, :, flux_idx, :])
