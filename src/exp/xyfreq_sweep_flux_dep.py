@@ -244,8 +244,191 @@ class XYFreqFlux( QMMeasurement ):
         # wait(25)
         align()
 
+class XYFreqLength( QMMeasurement ):
+    """
 
+    Parameters:
+    ro_elements is RO \n
+    xy_elements is XY \n
+    Z_elements is Z \n
 
+    z_played: \n
+        is a tuple, unit in V. \n
+    z_length_ratio: \n
+        is a tuple , the longest z_length ratio\n
+    z_length_points: \n
+        is a tuple. Divide z_length_range into z_length_points parts in log scale.\n
+    freq_range: \n
+        is a tuple ( upper bound, lower bound), unit in MHz, ref to idle IF \n
+    freq_resolution: \n
+        is a float, unit in MHz, ref to idle IF \n
+    sweep_type: \n
+        enumerate z_pulse, overlap
+
+    return: \n
+    dataset \n
+    coors: ["mixer","z_length","frequency"]\n
+    attrs: ref_xy_IF, ref_xy_LO, z_offset, z_played\n
+    """
+
+    def __init__( self, config, qmm: QuantumMachinesManager ):
+        super().__init__( config, qmm )
+
+        self.ro_elements = ["q4_ro"]
+        self.z_elements = ["q3_z"]
+        self.xy_elements = ["q4_xy"]
+        
+        self.preprocess = "ave"
+        self.initializer = None
+        
+        self.sweep_type = "z_pulse"
+        self.xy_driving_time = 10
+        self.xy_amp_mod = 0.1
+        self.z_played = 0.1
+        self.z_length_ratio = 100
+        self.z_length_points = 30
+
+        self.freq_range = ( -1, 1 )
+        self.freq_resolution = 0.5
+
+        
+
+    def _get_qua_program( self ):
+        
+        self.qua_z_length_cc = self._log_z_length_array()*u.us//4
+        # print(self.qua_cc_pi_timing)
+        self.qua_freqs = self._lin_freq_array()
+
+        self.qua_xy_driving_time = self.xy_driving_time/4 *u.us
+        self._attribute_config()
+
+        with program() as qua_prog:
+
+            iqdata_stream = multiRO_declare( self.ro_elements )
+            n = declare(int)  
+            n_st = declare_stream()
+            df = declare(int)  
+            r_z_length = declare(fixed)  
+
+            with for_(n, 0, n < self.shot_num, n + 1):
+
+                with for_(*from_array(r_z_length, self.qua_z_length_cc )):
+
+                    with for_(*from_array(df, self.qua_freqs)):
+
+                        # Initialization
+                        if self.initializer is None:
+                            wait(1*u.us, self.ro_elements)
+                        else:
+                            try:
+                                self.initializer[0](*self.initializer[1])
+                            except:
+                                print("initializer didn't work!")
+                                wait(1*u.us, self.ro_elements)
+
+                        # operation
+                        self._qua_constant_drive_z_pulse(r_z_length, df)
+                        # measurement
+                        multiRO_measurement( iqdata_stream, self.ro_elements, weights='rotated_'  )
+
+                    # assign(index, index + 1)
+                save(n, n_st)
+            with stream_processing():
+                n_st.save("iteration")
+                multiRO_pre_save( iqdata_stream, self.ro_elements, (len(self.qua_z_length_cc), len(self.qua_freqs)))
+
+        return qua_prog
+        
+    def _get_fetch_data_list( self ):
+        ro_ch_name = []
+        for r_name in self.ro_elements:
+            ro_ch_name.append(f"{r_name}_I")
+            ro_ch_name.append(f"{r_name}_Q")
+
+        data_list = ro_ch_name + ["iteration"]   
+        return data_list
+    
+    def _data_formation( self ):
+        freqs_mhz = self.qua_freqs/1e6
+        z_length_ns = self.qua_z_length_cc*4
+
+        coords = { 
+            "mixer":np.array(["I","Q"]), 
+            "z_length":z_length_ns,
+            "frequency": freqs_mhz,
+            #"prepare_state": np.array([0,1])
+            }
+        match self.preprocess:
+            case "shot":
+                dims_order = ["mixer","shot","z_length","frequency"]
+                coords["shot"] = np.arange(self.shot_num)
+            case _:
+                dims_order = ["mixer","z_length","frequency"]
+
+        output_data = {}
+        for r_idx, r_name in enumerate(self.ro_elements):
+            data_array = np.array([ self.fetch_data[r_idx*2], self.fetch_data[r_idx*2+1]])
+            output_data[r_name] = ( dims_order, np.squeeze(data_array))
+
+        dataset = xr.Dataset( output_data, coords=coords )
+
+        # dataset = dataset.transpose("mixer", "prepare_state", "frequency", "amp_ratio")
+
+        self._attribute_config()
+        dataset.attrs["ro_LO"] = self.ref_ro_LO
+        dataset.attrs["ro_IF"] = self.ref_ro_IF
+        dataset.attrs["xy_LO"] = self.ref_xy_LO
+        dataset.attrs["xy_IF"] = self.ref_xy_IF
+        dataset.attrs["z_offset"] = self.z_offset
+
+        dataset.attrs["z_amp_const"] = self.z_amp
+        return dataset
+
+    def _attribute_config( self ):
+        self.ref_ro_IF = []
+        self.ref_ro_LO = []
+        for r in self.ro_elements:
+            self.ref_ro_IF.append(gc.get_IF(r, self.config))
+            self.ref_ro_LO.append(gc.get_LO(r, self.config))
+
+        self.ref_xy_IF = []
+        self.ref_xy_LO = []
+        for xy in self.xy_elements:
+            self.ref_xy_IF.append(gc.get_IF(xy, self.config))
+            self.ref_xy_LO.append(gc.get_LO(xy, self.config))
+
+        self.z_offset = []
+        self.z_amp = []
+        for z in self.z_elements:
+            self.z_offset.append( gc.get_offset(z, self.config ))
+            self.z_amp.append(gc.get_const_wf(z, self.config ))
+
+    def _lin_freq_array( self ):
+
+        freq_r1_qua = self.freq_range[0] * u.MHz
+        freq_r2_qua = self.freq_range[1] * u.MHz
+        freq_resolution_qua = self.freq_resolution * u.MHz
+        freqs_qua = np.arange(freq_r1_qua,freq_r2_qua,freq_resolution_qua )
+        
+        return freqs_qua
+
+    def _log_z_length_array( self ):
+        z_length = np.geomspace(self.xy_driving_time, 
+                            self.xy_driving_time * self.z_length_ratio, 
+                            num=self.z_length_points)
+        return z_length
+    
+
+    def _qua_constant_drive_z_pulse( self, r_z_length, df ):
+        
+        # operation
+        for i, z in enumerate(self.z_elements):
+            play( "const"*amp( self.z_played ), z, duration=r_z_length)
+        for i, xy in enumerate(self.xy_elements):
+            update_frequency( xy, self.ref_xy_IF[i] +df )
+            wait(r_z_length-self.qua_xy_driving_time, xy)
+            play("const"*amp( self.xy_amp_mod ), xy, duration=self.qua_xy_driving_time)
+        align()
 
 
 def plot_flux_dep_qubit( data, flux, dfs, ax=None ):
@@ -298,8 +481,6 @@ def plot_ana_flux_dep_qubit( data, flux, dfs, freq_LO, freq_IF, abs_z, ax=None, 
     plt.colorbar(pcm, label='Value')
 
     ax[1].legend()
-
-
 
 def plot_ana_flux_dep_qubit_1D( data, flux, dfs, freq_LO, freq_IF, abs_z, ax=None, iq_rotate=0 ):   # 20240530 test by Sean
     """
