@@ -25,4 +25,4 @@ def get_LO( element, config ):
 def get_ro_length( element, config ):
 
     pulse_name = config["elements"][element]["operations"]["readout"]
-    return pulse_name["length"]
+    return config["pulses"][pulse_name]["length"]
