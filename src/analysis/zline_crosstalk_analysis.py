@@ -144,7 +144,7 @@ def analysis_crosstalk_value_fitting(dataset):
             col_data = data[:, i]
 
             fit = Fit()
-            res = fit.transmission_resonator_spectroscopy(z2 * 1e12, col_data, plot=True)
+            res = fit.transmission_resonator_spectroscopy(z2 * 1e12, col_data, plot=False)
             y_vals.append(res["f"][0] * 1e-12)  # 取出对应的 detector voltage
 
             x_vals.append(z1[i])  # 取出当前的 crosstalk voltage
@@ -162,7 +162,7 @@ def analysis_crosstalk_value_fitting(dataset):
                 row_data = data[i, :]
 
                 fit = Fit()
-                res = fit.transmission_resonator_spectroscopy(z1 * 1e12, row_data, plot=True)
+                res = fit.transmission_resonator_spectroscopy(z1 * 1e12, row_data, plot=False)
                 x_vals.append(res["f"][0] * 1e-12)  # 取出对应的 crosstalk voltage
 
                 y_vals.append(z2[i])  # 取出当前的 detector voltage

@@ -18,8 +18,8 @@ save_dir = link_config["path"]["output_root"]
 import matplotlib.pyplot as plt
 
 # Set parameters
-ro_elements = [ "q7_ro", "q8_ro"]
-operate_qubit = ['q8_xy']
+ro_elements = [ "q3_ro", "q4_ro"]
+operate_qubit = ['q4_xy']
 
 save_data = True
 save_name = f"ro_amp_{operate_qubit[0]}"

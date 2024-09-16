@@ -22,9 +22,9 @@ import numpy as np
 # Set parameters
 init_macro = initializer(300000,mode='wait')
 
-ro_element = ["q0_ro","q1_ro"]
-flux_Qi = 1
-excited_Qi = [0,1]
+ro_element = ["q3_ro","q4_ro"]
+flux_Qi = 4
+excited_Qi = [3,4]
 
 n_avg = 200
 

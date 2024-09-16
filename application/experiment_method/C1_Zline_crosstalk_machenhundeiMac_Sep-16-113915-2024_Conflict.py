@@ -25,22 +25,22 @@ import xarray as xr
 # Set parameters
 from exp.zline_crosstalk import FluxCrosstalk
 my_exp = FluxCrosstalk(config, qmm)
-my_exp.detector_qubit = "q4"
+my_exp.detector_qubit = "q3"
 my_exp.detector_is_coupler = False
-my_exp.crosstalk_qubit = "q3"
+my_exp.crosstalk_qubit = "q4"
 my_exp.ro_elements = ["q3_ro", "q4_ro"]
 
 my_exp.expect_crosstalk = 0.1
 my_exp.detector_bias = 0.
 my_exp.z_modify_range = 0.2
-my_exp.z_resolution = 0.004
-my_exp.z_time = 20
+my_exp.z_resolution = 0.008
+my_exp.z_time = 0.16
 
 my_exp.measure_method = "long_drive"   #long_drive, ramsey
 my_exp.z_method = "pulse"     #offset, pulse
 
 my_exp.initializer = initializer(50000,mode='wait')
-dataset = my_exp.run( 50 )
+dataset = my_exp.run( 100 )
 
 
 save_data = True
@@ -59,8 +59,7 @@ raw_figures = plot_crosstalk_3Dscalar(dataset)
 from exp.save_data import DataPackager
 
 dp.save_figs(raw_figures)
-dp.save_figs(analysis_figures)
-plt.show()
+# dp.save_figs(analysis_figures)
 
 # # 保存每个图像并显示
 # for fig, ax, q in raw_figures:

@@ -17,11 +17,11 @@ from exp.plotting import plot_and_save_dispersive_limit
 from exp.rofreq_sweep_power_dep import ROFreqSweepPowerDep
 my_exp = ROFreqSweepPowerDep(config, qmm)
 my_exp.initializer = initializer(10000,mode='wait')
-my_exp.ro_elements = ["q0_ro",] #"q2_ro","q3_ro","q4_ro","q5_ro",
+my_exp.ro_elements = ["q3_ro","q4_ro"] #"q2_ro","q3_ro","q4_ro","q5_ro",
 my_exp.freq_range = (-10,10)
 my_exp.freq_resolution = 0.05
-my_exp.amp_mod_range = (-3,0) # tha value range >0, <2
-my_exp.amp_scale = "log"
+my_exp.amp_mod_range = (0,2) # tha value range >0, <2
+my_exp.amp_scale = "lin"
 dataset = my_exp.run( 20 )
 
 #Save data

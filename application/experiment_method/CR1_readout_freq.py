@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 from exp.readout_optimization import ROFreq
 my_exp = ROFreq(config, qmm)
 my_exp.initializer = initializer(300000,mode='wait')
-my_exp.ro_elements = ["q7_ro", "q8_ro"]
-my_exp.xy_elements = ['q8_xy']
-my_exp.freq_range = (-1, 1)
-my_exp.freq_resolution = 0.01
+my_exp.ro_elements = ["q3_ro", "q4_ro"]
+my_exp.xy_elements = ['q4_xy']
+my_exp.freq_range = (-10, 10)
+my_exp.freq_resolution = 0.1
 my_exp.preprocess = "shot"
 save_data = True
 save_dir = link_config["path"]["output_root"]

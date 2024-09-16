@@ -15,8 +15,8 @@ from exp.plotting import plot_and_save_flux_period
 
 # Set parameters
 init_macro = initializer(10000,mode='wait')
-ro_elements = ["q4_ro"]
-z_elements = ['q4_z']
+ro_elements = ["q5_ro"]
+z_elements = ['q5_z']
 
 n_avg = 100
 freq_range = (-5,5)

@@ -17,18 +17,18 @@ from exp.plotting import plot_and_save_flux_dep_Qubit
 # Start meausrement
 from exp.xyfreq_sweep_flux_dep import XYFreqFlux
 my_exp = XYFreqFlux(config, qmm)
-my_exp.ro_elements = ["q4_ro","q3_ro"]
+my_exp.ro_elements = ["q3_ro", "q4_ro"]
 my_exp.xy_elements = ['q4_xy']
-my_exp.z_elements = ['q3_z']
+my_exp.z_elements = ['q4_z']
 my_exp.initializer=initializer(10000,mode='wait')
 my_exp.xy_driving_time = 20
-my_exp.xy_amp_mod = 0.02
-my_exp.z_amp_ratio_range = (-0.02,0.02)
+my_exp.xy_amp_mod = 0.03
+my_exp.z_amp_ratio_range = (-2,2)
 my_exp.z_amp_ratio_resolution = 0.02
-my_exp.freq_range = (-400,400)
+my_exp.freq_range = (-150,50)
 my_exp.freq_resolution = 4
-my_exp.sweep_type = "overlap"
-dataset = my_exp.run( 10 )
+my_exp.sweep_type = "z_pulse"
+dataset = my_exp.run( 20 )
 
 #Save data
 save_data = 1

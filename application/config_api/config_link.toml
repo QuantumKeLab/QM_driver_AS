@@ -2,12 +2,12 @@
 
 
 [sample]
-  name = "HappyQubit"
+  name = "20240905_DR4_5Q4C_0430#7"
 
 [path]
-    config = "C:\\Users\\arthu\\Coding\\Python\\Single_Qubit_Measurement_config\\HappyQubit.json"
-    dynamic_config = "C:\\Users\\arthu\\Coding\\Python\\Single_Qubit_Measurement_config\\HappyQubit_config.pkl"
-    specification = "C:\\Users\\arthu\\Coding\\Python\\Single_Qubit_Measurement_config\\HappyQubit_spec.pkl"
-    output_root = "C:\\Users\\arthu\\Coding\\Python\\Single_Qubit_Measurement_config\\HappyQubit"
+    config = "C:\\Users\\quant\\SynologyDrive\\09 Data\\Fridge Data\\Qubit\\20240905_DR3_5Q4C_0430#7\\config\\20240905_DR4_5Q4C_0430#7.json"
+    dynamic_config = "C:\\Users\\quant\\SynologyDrive\\09 Data\\Fridge Data\\Qubit\\20240905_DR3_5Q4C_0430#7\\config\\20240905_DR4_5Q4C_0430#7_config.pkl"
+    specification = "C:\\Users\\quant\\SynologyDrive\\09 Data\\Fridge Data\\Qubit\\20240905_DR3_5Q4C_0430#7\\config\\20240905_DR4_5Q4C_0430#7_spec.pkl"
+    output_root = "C:\\Users\\quant\\SynologyDrive\\09 Data\\Fridge Data\\Qubit\\20240905_DR3_5Q4C_0430#7\\raw_data"
 
 

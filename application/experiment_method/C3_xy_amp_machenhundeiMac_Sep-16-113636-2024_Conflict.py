@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 init_macro = initializer(200000,mode='wait')
 
 ro_elements = ["q3_ro", "q4_ro"]
-q_name =  "q4_xy"
+q_name =  "q3_xy"
 
 
 save_data = True

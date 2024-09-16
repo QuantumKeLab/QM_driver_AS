@@ -17,9 +17,9 @@ from exp.plotting import plot_and_save_flux_dep_Qubit
 # Start meausrement
 from exp.xyfreq_sweep_flux_dep_SecondExcite import XYFreqFluxSecondExcite
 my_exp = XYFreqFluxSecondExcite(config, qmm)
-my_exp.ro_elements = ["q2_ro"]
-my_exp.xy_elements = ['q2_xy']
-my_exp.z_elements = ['q0_z']
+my_exp.ro_elements = ["q3_ro"]
+my_exp.xy_elements = ['q3_xy']
+my_exp.z_elements = ['q3_z']
 my_exp.initializer=initializer(10000,mode='wait')
 my_exp.xy_driving_time = 10
 my_exp.xy_amp_mod = 0.03

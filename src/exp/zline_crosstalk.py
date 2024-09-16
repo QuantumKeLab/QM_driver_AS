@@ -165,8 +165,8 @@ class FluxCrosstalk( QMMeasurement ):
                                 play("const"*amp(z_crosstalk*10.), f"{self.crosstalk_qubit}_z", self.z_time_cc+10)         #const 預設0.5
                                 play("const"*amp(z_detector*10.), f"{self.detector_qubit}_z", self.z_time_cc+10)
                                 wait(5)
-                                # play( "x180"*amp(self.pi_amp_ratio), f"{self.detector_qubit}_xy", duration=self.z_time_cc )
-                                play("const"*amp( 0.2 ), f"{self.detector_qubit}_xy", duration=self.z_time_cc)
+                                play( "x180"*amp(self.pi_amp_ratio), f"{self.detector_qubit}_xy", duration=self.z_time_cc )
+                                # play("const"*amp( 0.2 ), f"{self.detector_qubit}_xy", duration=self.z_time_cc)
                                 # wait(17-5, f"{self.crosstalk_qubit}_z")    #不加這個wait的話x180會比z慢17cc，到底為啥???
                                 # wait(17-5, f"{self.detector_qubit}_z")    #不加這個wait的話x180會比z慢17cc，到底為啥???
 

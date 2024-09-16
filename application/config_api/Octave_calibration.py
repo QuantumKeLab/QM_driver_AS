@@ -16,20 +16,20 @@ q4_xy = ElementsSettings("q4_xy", gain=18)
 q5_xy = ElementsSettings("q5_xy", gain=18)
 # q6_xy = ElementsSettings("q6_xy", gain=18)
 # q7_xy = ElementsSettings("q7_xy", gain=18)
-# q8_xy = ElementsSettings("q8_xy", gain=18)
+q8_xy = ElementsSettings("q8_xy", gain=18)
 
 # q2_xy = ElementsSettings("q2_xy", gain=15)
 
 # Add the "octave" elements
 # elements_settings = [rr0]
-elements_settings = [rr0]
+elements_settings = [q3_xy,]
 
 
 ###################
 # Octave settings #
 ###################
 # Configure the Octave according to the elements settings and calibrate
-
+ 
 # Dynamic config
 from pathlib import Path
 # Get the current file path
