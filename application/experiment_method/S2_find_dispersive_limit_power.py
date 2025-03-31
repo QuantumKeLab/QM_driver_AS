@@ -17,12 +17,12 @@ from exp.plotting import plot_and_save_dispersive_limit
 from exp.rofreq_sweep_power_dep import ROFreqSweepPowerDep
 my_exp = ROFreqSweepPowerDep(config, qmm)
 my_exp.initializer = initializer(10000,mode='wait')
-my_exp.ro_elements = ["q0_ro",] #"q2_ro","q3_ro","q4_ro","q5_ro",
+my_exp.ro_elements = ["q0_ro","q1_ro", "q2_ro"] #"q2_ro","q3_ro","q4_ro","q5_ro",
 my_exp.freq_range = (-10,10)
 my_exp.freq_resolution = 0.05
-my_exp.amp_mod_range = (-3,0) # tha value range >0, <2
-my_exp.amp_scale = "log"
-dataset = my_exp.run( 20 )
+my_exp.amp_mod_range = (0,2) # tha value range >0, <2
+my_exp.amp_scale = "lin"
+dataset = my_exp.run( 200 )
 
 #Save data
 save_data = 1
@@ -40,3 +40,9 @@ from exp.plotting import PainterPowerDepRes
 painter = PainterPowerDepRes()
 figs = painter.plot(dataset,folder_label)
 if save_figure: dp.save_figs( figs )
+
+from analysis.Q_factor import QM_CS_ana
+ds = dataset.sel(amp_ratio=1, method='nearest')
+Q_figs = QM_CS_ana(ds)
+if save_figure:
+    dp.save_figs(Q_figs)

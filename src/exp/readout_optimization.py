@@ -454,5 +454,95 @@ class ROFreqAmpMapping( QMMeasurement ):
     def _lin_amp_ratio_array( self ):
         amp_ratio = np.arange( self.amp_mod_range[0],self.amp_mod_range[1], self.amp_resolution)
         return amp_ratio
-    
+
+
+def plot_freq_signal( x, data, label:str, ax ):
+    print(data.shape)
+    sig = get_signal_distance(data)
+    ax[0].plot( x, sig, ".-")
+    ax[0].set_title(f"{label} RO frequency")
+    ax[0].set_xlabel("Readout frequency detuning [MHz]")
+    ax[0].set_ylabel("Distance")
+    ax[0].grid("on")
+
+    sig = get_signal_amp(data)
+    ax[1].plot( x, sig[0], ".-", label="0")
+
+    ax[1].plot( x, sig[1], ".-", label="1")
+
+    # ax[1].set_title(f"{label} RO frequency")
+    ax[1].set_xlabel("Readout frequency detuning [MHz]")
+    ax[1].set_ylabel("Amplitude")
+    ax[1].legend()
+    ax[1].grid("on")
+
+    sig = get_signal_phase(data)
+    ax[2].plot( x, sig[0], ".-", label="0")
+    ax[2].plot( x, sig[1], ".-", label="1")
+
+    # ax[2].set_title(f"{label} RO frequency")
+    ax[2].set_xlabel("Readout frequency detuning [MHz]")
+    ax[2].set_ylabel("Phase")
+    ax[2].legend()
+    ax[2].grid("on")
+    # print(f"The optimal readout frequency is {dfs[np.argmax(SNR1)] + resonator_IF_q1} Hz (SNR={max(SNR1)})")
+    return ax
+
+def plot_amp_signal( x, data, label:str, ax ):
+    sig = get_signal_distance(data)
+    ax.plot( x, sig, ".-")
+    ax.set_xlabel("Readout amplitude ")
+    ax.set_ylabel("Distance")
+    ax.grid("on")
+    # print(f"The optimal readout frequency is {dfs[np.argmax(SNR1)] + resonator_IF_q1} Hz (SNR={max(SNR1)})")
+    return ax
+
+def plot_amp_signal_phase( x, data, label:str, ax ):
+    phase_g, phase_e = get_signal_phase(data)
+    ax.plot( x, phase_g, ".-", label="phase_g")
+    ax.plot( x, phase_e, ".-", label="phase_e")
+    ax.set_xlabel("Readout amplitude ")
+    ax.set_ylabel("Phase")
+    ax.grid("on")
+    ax.legend()
+    # print(f"The optimal readout frequency is {dfs[np.argmax(SNR1)] + resonator_IF_q1} Hz (SNR={max(SNR1)})")
+    return ax
+
+def get_signal_distance( data ):
+    """
+    data shape (2,2,N)
+    axis 0 I,Q
+    axis 1 g,e
+    axis 2 N frequency
+    """
+    s21_g = data[0][0] +1j*data[1][0] 
+    s21_e = data[0][1] +1j*data[1][1]
+    signal = np.abs(s21_g -s21_e)
+    return signal
+
+def get_signal_phase( data ):
+    """
+    data shape (2,2,N)
+    axis 0 I,Q
+    axis 1 g,e
+    axis 2 N frequency
+    """
+    s21_g = data[0][0] +1j*data[1][0] 
+    s21_e = data[0][1] +1j*data[1][1]
+    phase_g = np.unwrap(np.angle(s21_g))
+    phase_e = np.unwrap(np.angle(s21_e))
+    return (phase_g, phase_e)
+
+def get_signal_amp( data ):
+    """
+    data shape (2,2,N)
+    axis 0 I,Q
+    axis 1 g,e
+    axis 2 N frequency
+    """
+    s21_g = data[0][0] +1j*data[1][0] 
+    s21_e = data[0][1] +1j*data[1][1]
+    phase_g = np.abs(s21_g)
+    phase_e = np.abs(s21_e)
+    return (phase_g, phase_e)
 
