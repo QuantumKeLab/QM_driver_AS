@@ -15,13 +15,13 @@ from exp.plotting import plot_and_save_flux_period
 
 # Set parameters
 init_macro = initializer(10000,mode='wait')
-ro_elements = ["q4_ro"]
-z_elements = ['q4_z']
+ro_elements = ["q0_ro", "q1_ro", "q2_ro"]
+z_elements = ['q1_z']
 
 n_avg = 100
-freq_range = (-5,5)
+freq_range = (-10,10)
 freq_resolution = 0.1 #0.1
-flux_range = (-0.3,0.3)
+flux_range = (-0.5,0.5)
 flux_resolution = 0.02 #0.01
 
 from exp.rofreq_sweep_flux_dep import *
@@ -30,14 +30,14 @@ dataset = freq_sweep_flux_dep(ro_elements, z_elements, config, qmm, freq_range=f
 
 #Save data
 save_data = 1
-folder_label = "Find_Flux_Period" #your data and plots will be saved under a new folder with this name
+folder_label = f"Find_Flux_Period_{z_elements[0]}" #your data and plots will be saved under a new folder with this name
 if save_data: 
     from exp.save_data import DataPackager
     save_dir = link_config["path"]["output_root"]
     dp = DataPackager( save_dir, folder_label )
     dp.save_config(config)
     dp.save_nc(dataset,folder_label)
-    
+
 
 # Plot
 save_figure = 1
